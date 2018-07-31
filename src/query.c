@@ -153,7 +153,10 @@ QueryNode *NewFuzzyNode(QueryParseCtx *q, const char *s, size_t len, int maxDist
   ret->fz = (QueryFuzzyNode){
       .tok =
           (RSToken){
-              .str = (char *)s, .len = len, .expanded = 0, .flags = 0,
+              .str = (char *)s,
+              .len = len,
+              .expanded = 0,
+              .flags = 0,
           },
       .maxDist = maxDist,
   };
@@ -334,7 +337,9 @@ static IndexIterator *iterateExpandedTerms(QueryEvalCtx *q, Trie *terms, const c
 
     // Create a token for the reader
     RSToken tok = (RSToken){
-        .expanded = 0, .flags = 0, .len = 0,
+        .expanded = 0,
+        .flags = 0,
+        .len = 0,
     };
     tok.str = runesToStr(rstr, slen, &tok.len);
     if (q->sctx && q->sctx->redisCtx) {

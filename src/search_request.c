@@ -13,10 +13,12 @@
 #include "query_plan.h"
 #include <sys/param.h>
 #include <rmutil/cmdparse.h>
-#include <err.h>
 
 RSSearchRequest *ParseRequest(RedisSearchCtx *ctx, RedisModuleString **argv, int argc,
-                              char **errStr) {
+                              QueryError *status) {
+
+#undef SET_ERR
+#define SET_ERR(unused, s) QueryError_SetError(status, QUERY_EKEYWORD, s)
 
   RSSearchRequest *req = calloc(1, sizeof(*req));
   *req = (RSSearchRequest){
@@ -304,12 +306,16 @@ void RSSearchRequest_Free(RSSearchRequest *req) {
   free(req);
 }
 
-QueryParseCtx *SearchRequest_ParseQuery(RedisSearchCtx *sctx, RSSearchRequest *req, char **err) {
+QueryParseCtx *SearchRequest_ParseQuery(RedisSearchCtx *sctx, RSSearchRequest *req,
+                                        QueryError *status) {
 
   QueryParseCtx *q = NewQueryParseCtx(sctx, req->rawQuery, req->qlen, &req->opts);
   RedisModuleCtx *ctx = sctx->redisCtx;
 
-  if (!Query_Parse(q, err)) {
+  if (!Query_Parse(q, &status->detail)) {
+    if (status->detail) {
+      status->code = QUERY_ESYNTAX;
+    }
     Query_Free(q);
     return NULL;
   }
@@ -343,7 +349,7 @@ QueryParseCtx *SearchRequest_ParseQuery(RedisSearchCtx *sctx, RSSearchRequest *r
 }
 
 QueryPlan *SearchRequest_BuildPlan(RedisSearchCtx *sctx, RSSearchRequest *req, QueryParseCtx *q,
-                                   char **err) {
+                                   QueryError *status) {
   if (!q) return NULL;
-  return Query_BuildPlan(sctx, q, &req->opts, Query_BuildProcessorChain, req, err);
+  return Query_BuildPlan(sctx, q, &req->opts, Query_BuildProcessorChain, req, status);
 }
